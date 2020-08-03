@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>reveal.js - Barebones</title>
+    <link rel="stylesheet" href="../dist/reset.css" />
+    <link rel="stylesheet" href="../dist/reveal.css" />
+    <link rel="stylesheet" href="../dist/theme/solarized.css" id="theme" />
+    <link rel="stylesheet" href="../plugin/highlight/monokai.css" />
+    <link rel="stylesheet" href="../dist/custom.css" />
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h3>Angular In Action</h3>
+          <h4>Angular: a platform, not a framework</h4>
+        </section>
+        <section>
+          <h3>Why A Platform</h3>
+          <ul>
+            <li>
+              Angular团队打造了项目，开发、测试和发布流程脚本
+            </li>
+            <li>
+              服务端渲染能力
+            </li>
+            <li>
+              桌面应用、移动端应用和浏览器应用都提供了执行环境
+            </li>
+            <li>有专为angular定制的Material Design视图库</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Angular 里的实体</h3>
+          <ul>
+            <li>Modules 👈</li>
+            <li>Components 👈</li>
+            <li>Directives</li>
+            <li>Pipes</li>
+            <li>Services</li>
+          </ul>
+        </section>
+        <section>
+          <section>
+            <h3>Modules In Angular</h3>
+            <ul>
+              <li>JavaScript modules</li>
+              <li>Angular modules</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Angular modules</h3>
+            <h4>组织相同实体的逻辑单元</h4>
+          </section>
+          <section>
+            <h3>模块定义</h3>
+            <pre
+              data-id="code"
+            ><code data-line-numbers class="hljs" data-trim>
+				@NgModule({
+				  declarations: [
+				    AppComponent,
+				    SummaryComponent 
+				  ],
+				  imports: [BrowserModule, FormsModule, HttpModule],
+				  providers: [StocksService], 
+				  bootstrap: [AppComponent]
+				})
+
+				export class AppModule { }
+			</code></pre>
+            <p class="desc">declarations: 当前模块注册的组件和指令</p>
+            <p class="desc">providers: 当前模块注册的服务</p>
+            <p class="desc">imports: 当前模块依赖的其他模块</p>
+            <p class="desc">
+              bootstrap: 需要渲染到屏幕的组件（一般都是项目的入口组件）
+            </p>
+          </section>
+          <section>
+            <img src="./assets/angular-render.png" />
+          </section>
+        </section>
+        <section>
+          <h3>编译器的种类</h3>
+          <h4>Just-in-Time 和 Ahead-of-Time</h4>
+          <p>JiT</p>
+          <ul>
+            <li class="li">所有资源加载完成后才开始编译整个应用</li>
+            <li class="li">应用执行前，需要加载好编译器的代码</li>
+            <li class="li">开发环境</li>
+          </ul>
+          <p>AoT</p>
+          <ul>
+            <li class="li">浏览器显示之前已经编译完整个应用了</li>
+            <li class="li">代码已经编译好了，不需要编译器</li>
+            <li class="li">生产环境</li>
+          </ul>
+        </section>
+        <section>
+          <section>
+            <h3>依赖注入(DI)</h3>
+            <ul>
+              <li>注册机制维护可被分享的对象和服务</li>
+              <li>页面或者组件可以到这个注册中心请求这些被注册的对象和服务</li>
+            </ul>
+          </section>
+          <section>
+            <h3>injector</h3>
+            <p>注册和请求依赖的服务</p>
+            <pre
+              data-id="code"
+            ><code data-line-numbers class="hljs" data-trim>constructor(private http: HttpClient) {}
+constructor(private @Inject(HttpClient) http) {}</code></pre>
+            <p>
+              injector 会确保http是HttpClient的实例
+            </p>
+          </section>
+          <section>
+            <h3>providers</h3>
+            <p class="desc">Providers 负责创建请求对象的实例</p>
+            <p class="desc">
+              injector
+              知道可供使用的Providers，并且会调用provider里的工厂函数去实例化请求的对象
+            </p>
+            <p class="desc">
+              在NgModule装饰器的providers数组里的服务，都会被注入到整个应用代码里
+            </p>
+            <p class="desc">
+              Providers
+              不一定非得定义在根模块下，也可以定义到组件或者组件数的某个分支
+            </p>
+          </section>
+        </section>
+        <section>
+          <h3>Change detection</h3>
+          <p>保持数据和视图同步的一种机制</p>
+          <ul>
+            <li class="li">改变总是从model层到视图层</li>
+            <li class="li">父组件到子组件单向流动</li>
+            <li class="li">特殊类change detector监听组件状态的改变</li>
+            <li class="li">事件、HTTP响应数据和timers都会触发CD</li>
+          </ul>
+        </section>
+        <section>
+          <section>
+            <h3>组件的种类</h3>
+            <h4>根据角色划分</h4>
+            <ul>
+              <li>App Component (应用的根组件)</li>
+              <li>Display Component (无状态组件)</li>
+              <li>Data Component (有状态组件)</li>
+              <li>Route Component (处理路由参数)</li>
+            </ul>
+          </section>
+          <section>
+            <h3>拦截输入</h3>
+            <pre
+              data-id="code"
+            ><code data-line-numbers class="hljs" data-trim>export class MetricComponent { 
+	@Input() title: string;
+	private _max: number = 100;
+	@Input('available')
+	set max(max: number) {
+		if (isNaN(max)) max = 100;
+		this._max = max; 
+	}
+	get max(): number { return this._max; }
+}</code></pre>
+          </section>
+          <section>
+            <h3>改变检查的优化</h3>
+            <pre
+              data-id="code"
+            ><code data-line-numbers class="hljs" data-trim>import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+
+@Component({
+	selector: '[app-nodes-row]',
+	templateUrl: './nodes-row.component.html', 
+	changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class MetricComponent implements OnChanges {
+	@Input() used: number = 0;
+	@Input() available: number = 100;
+
+	ngOnChanges(changes) {}
+}
+</code></pre>
+          </section>
+          <section>
+            <img src="./assets/onpush.png" />
+          </section>
+          <section>
+            <h3>Output 事件和template变量</h3>
+            <pre
+              data-id="code"
+            ><code data-line-numbers class="hljs" data-trim>
+			  import { Component, Output, EventEmitter } from '@angular/core';
+
+			  @Component({
+				selector: 'app-navbar',
+				templateUrl: './navbar.component.html', 
+				styleUrls: ['./navbar.component.css']
+			  })
+			  export class NavbarComponent  {
+			    @Output() onRefresh: EventEmitter<null> = new EventEmitter<null>();
+			    refresh() { 
+			      this.onRefresh.emit();
+			    } 
+			  }
+			  // use 
+			  <app-navbar (onRefresh)="dashboard.generateData()"></app-navbar>
+			  <app-dashboard #dashboard></app-dashboard>
+			</code></pre>
+		  </section>
+		  <section>
+			  <h3>ViewChild索引子组件</h3>
+<pre
+	data-id="code"
+>
+<code data-line-numbers class="hljs" data-trim>
+import { Component, ViewChild } from '@angular/core';
+import { DashboardComponent } from './dashboard/dashboard.component';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html'
+})
+export class AppComponent {
+  @ViewChild(DashboardComponent) dashboard: DashboardComponent;
+  refresh() { 
+    this.dashboard.generateData();
+  } 
+}
+
+// use 
+<app-navbar (onRefresh)="refresh()"></app-navbar> 
+<app-dashboard></app-dashboard>
+
+</code>
+</pre>
+		  </section>
+        </section>
+        <section>
+          <section>
+            <h3>内容映射</h3>
+            <pre
+              data-id="code"
+            ><code data-line-numbers class="hljs" data-trim>@Component({
+	selector: 'app-ng-content-simple',
+	template: '&lt;ng-content&gt;&lt;/ng-content&gt;',
+})
+export class NgContentSimpleComponent implements OnInit {
+	constructor() { }
+	ngOnInit() {
+	}
+}
+// usage
+&lt;app-ng-content-simple&gt;
+	I am a simple ng content
+&lt;/app-ng-content-simple&gt;
+</code></pre>
+          </section>
+          <section>
+            <h3>利用select插入</h3>
+            <pre
+              data-id="code"
+            ><code data-line-numbers class="hljs" data-trim>@Component({
+selector: 'app-ng-content-select',
+template: `
+	&lt;ng-content>&lt;/ng-content&gt;
+	&lt;ng-content select="span"&gt;&lt;/ng-content&gt;
+	&lt;ng-content select="[attribute]"&gt;&lt;/ng-content&gt;
+	&lt;ng-content select=".class"&gt;&lt;/ng-content&gt;
+`,
+})
+export class NgContentSelectComponent implements OnInit {
+	constructor() { }
+	ngOnInit() {}
+}
+
+
+// usage
+&lt;app-ng-content-select&gt;
+	&lt;div>simple content&lt;/div&gt;
+	&lt;span style="display:block">span content&lt;/span&gt;
+	&lt;div attribute>content with attribute&lt;/div&gt;
+	&lt;div class="class">content with css class&lt;/div&gt;
+&lt;/app-ng-content-select&gt;
+</code></pre>
+          </section>
+		</section>
+		<section>
+			<section>
+				<h3>组件的样式</h3>
+				<pre
+				data-id="code"
+				><code data-line-numbers class="hljs" data-trim>
+				// 1. Global CSS rules
+				全局styles.css
+
+				// 2. Component styleUrls property linked to a CSS file
+				@Component({
+					selector: 'app-navbar',
+					templateUrl: './navbar.component.html',
+					styleUrls: ['./navbar.component.css'],
+				})
+
+				// 3. Component styles property
+				@Component({
+					selector: 'app-navbar',
+					templateUrl: './navbar.component.html',
+					styles: [`.btn { background-color: #999999; }`]
+				})
+
+				// 4. Inline style declaration
+				<style>.btn { background-color: #3274b8; }</style>  
+
+				// 5. Inline CSS style element
+				<button type="button" style="background-color: #8616f6">Reload</button>
+				</code></pre>
+				<p class="desc">Note: 样式优先级顺序是官方CLI编译的方式</p>
+			</section>
+			<section>
+				<h3>封装模式</h3>
+				<pre
+				data-id="code"
+				><code data-line-numbers class="hljs" data-trim>
+import { Component, ViewEncapsulation } from '@angular/core';
+
+@Component({
+	selector: 'app-metric',
+	templateUrl: './metric.component.html', 
+	styleUrls: ["./metric.component.css"],
+	ViewEncapsulation: ViewEncapsulation.Emulated
+})
+export class MetricComponent {
+
+}
+				</code></pre>
+				<ul>
+					<li>None</li>
+					<li>Emulated</li>
+					<li>Native</li>
+				</ul>
+			</section>
+			<section>
+				<img src="./assets/none-style.png" />
+			</section>
+			<section>
+				<img src="./assets/style.png" />
+			</section>
+			
+		</section>
+		<section>
+			<h3>结束</h3>
+			<h4>q & a</h4>
+		</section>
+      </div>
+    </div>
+
+    <script src="../dist/reveal.js"></script>
+    <script src="../plugin/highlight/highlight.js"></script>
+    <script>
+      Reveal.initialize({
+        center: true,
+        history: true,
+		plugins: [ RevealHighlight ]
+
+        // transition: 'slide',
+        // transitionSpeed: 'slow',
+        // backgroundTransition: 'slide'
+      });
+    </script>
+  </body>
+</html>
