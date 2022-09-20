@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>reveal.js - Barebones</title>
+    <link rel="stylesheet" href="../dist/reset.css" />
+    <link rel="stylesheet" href="../dist/reveal.css" />
+    <link rel="stylesheet" href="../dist/theme/solarized.css" id="theme" />
+    <link rel="stylesheet" href="../plugin/highlight/monokai.css" />
+    <link rel="stylesheet" href="../dist/custom.css" />
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h5>依赖注入定义</h5>
+          <p class="desc">当我们开发软件时，模块或者类会依赖一些外部的依赖项</p>
+          <pre
+              data-id="code"
+            ><code data-line-numbers class="hljs" data-trim>
+export class CoursesService() {
+    http: HttpClient;  
+    constructor() {
+        this.http = new HttpClient(... dependencies needed by HTTPClient ...);
+    }
+    ...
+}
+		    </code></pre>
+        </section>
+        <section>
+          <h5>存在的问题</h5>
+          <ul>
+            <li>
+              测试比较困难 (比如用 mock http client 替换 真实的 http client)
+            </li>
+            <li>
+              不能运行时用另一个版本的依赖来做替换 (比如在server 和 browser 的版本可以不同)
+            </li>
+          </ul>
+        </section>
+        <section>
+            <h5>改进版本</h5>
+            <pre
+                data-id="code"
+              ><code data-line-numbers class="hljs" data-trim>
+@Injectable()
+export class CoursesService() {
+    http: HttpClient;
+    constructor(http: HttpClient) {
+        this.http = http;
+    }
+    ...
+}
+            </code></pre>
+        </section>
+        <section>
+            <h5>改进版本的优点</h5>
+            <ul>
+              <li>
+                非常容易地替换测试时的依赖
+              </li>
+              <li>
+                支持多环境的动态依赖替换
+              </li>
+            </ul>
+        </section>
+        <section>
+            <h5>定义</h5>
+            <blockquote>
+                只通过接收参数作为依赖，并不知道依赖的内部如何工作的、依赖是怎么创建的。这种依赖创建的方式我们称为 `依赖注入`。这是理解 Angular 的重要概念。 
+            </blockquote>
+        </section>
+        <section>
+            <h5>从头设置依赖注入</h5>
+            <p class="desc">理解怎样将原生 class 转换成可依赖注入的类 </p>
+            <pre
+                data-id="code"
+              ><code data-line-numbers class="hljs" data-trim>
+export class CoursesService() {
+    http: HttpClient;
+    constructor(http: HttpClient) {
+        this.http = http;
+    }
+    ...
+}
+            </code></pre>
+            <p class="desc">没有 @Injectable() 装饰器</p>
+        </section>
+        <section>
+            <p class="desc">让我们看看将上面的 serivice 直接注入另一个组件里</p>
+            <pre
+                data-id="code"
+              ><code data-line-numbers class="hljs" data-trim>
+@Component({
+    selector: 'course-card',
+    templateUrl: './course-card.component.html',
+    styleUrls: ['./course-card.component.css']
+})
+export class CourseCardComponent  {
+
+    constructor(private coursesService: CoursesService) {
+        ...
+    }
+    ...
+}
+
+//  NullInjectorError: No provider for CoursesService!
+            </code></pre>
+            <p class="desc">当我们将这个类的实例注入的时候，并没有将这个类关联到我们的依赖注入系统</p>
+        </section>
+        <section>
+            <h5>Dependency Injection Provider 定义</h5>
+            <blockquote>
+                这也可以称作提供者工厂函数（provider factory function），它是一个普通的函数，Angular 会执行它去创建依赖。
+            </blockquote>
+        </section>
+        <section>
+            <h5>provider factory function 示例</h5>
+            <pre
+                data-id="code"
+              ><code data-line-numbers class="hljs" data-trim>
+function coursesServiceProviderFactory(http:HttpClient): CoursesService {
+    return new CoursesService(http);
+}
+            </code></pre>
+            <p class="desc">Angular的依赖注入系统需要CoursesService的实例时都会调用这个方法</p>
+            <p class="desc">但Angular还不能将这个实例和工厂函数联系起来</p>
+        </section>
+        <section>
+            <h5>注入令牌(Injection Tokens)定义</h5>
+            <p class="desc">为了唯一识别依赖的类别，我们需要注入令牌；它是一个对像、具有唯一性。</p>
+            <pre
+                data-id="code"
+              ><code data-line-numbers class="hljs" data-trim>
+export const COURSES_SERVICE_TOKEN = 
+new InjectionToken&lt;CoursesService&gt;("COURSES_SERVICE_TOKEN");
+
+            </code></pre>
+        </section>
+        <section>
+            <h5>怎样使用令牌</h5>
+            <p class="desc">手动配置提供者</p>
+            <pre
+                data-id="code"
+              ><code data-line-numbers class="hljs" data-trim>
+@NgModule({
+    imports: [
+        ...
+    ],
+    declarations: [
+        ...
+    ],
+    providers: [
+        {
+            provide: COURSES_SERVICE_TOKEN,
+            useFactory: coursesServiceProviderFactory,
+            deps: [HttpClient]
+        }
+    ]
+})
+export class CoursesModule { }
+            </code></pre>
+            <p class="desc">useFactory：工厂函数，Angular 会根据它去实例化并且注入依赖</p>
+            <p class="desc">provide：提供令牌，帮助决定是否调用某个工厂函数</p>
+            <p class="desc">deps：提供工厂函数依赖的变量</p>
+        </section>
+        <section>
+            <h5>注入依赖</h5>
+            <pre
+                data-id="code"
+              ><code data-line-numbers class="hljs" data-trim>
+@Component({
+    selector: 'course-card',
+    templateUrl: './course-card.component.html',
+    styleUrls: ['./course-card.component.css']
+})
+export class CourseCardComponent  {
+
+    constructor(private coursesService: CoursesService) {
+        ...
+    }
+    ...
+}
+// NullInjectorError: No provider for CoursesService!
+
+            </code></pre>
+            <p class="desc">为什么上面依然报错？</p>
+        </section>
+        <section>
+            <h5>发生了什么</h5>
+           
+            <p class="desc">因为 Angular 不知道用我们定义好的工厂函数去创建依赖</p>
+            <p class="desc">需要显式地告诉 Angular 用我们自定义的 Provider</p>
+        </section>
+        <section>
+            <h5>怎样操作？</h5>
+            <pre
+                data-id="code"
+              ><code data-line-numbers class="hljs" data-trim>
+@Component({
+    selector: 'course-card',
+    templateUrl: './course-card.component.html',
+    styleUrls: ['./course-card.component.css']
+})
+export class CourseCardComponent  {
+
+    constructor( @Inject(COURSES_SERVICE_TOKEN) private coursesService: CoursesService) {
+        ...
+    }
+    ...
+}
+            </code></pre>
+            <p class="desc">用到Inject装饰器</p>
+            <p class="desc">注入令牌唯一识别使用哪个 provider 对应的工厂函数去实例化我们的依赖</p>
+        </section>
+        <section>
+            <h5>为什么我们不用手动配置 providers 呢？</h5>
+            <blockquote>
+                对于应用的单个依赖来说，不管是服务(serivice)、组件(component)、还是其他的实体而言。
+                一定有一个对应的 provider 和 injection token (或者其他机制) 唯一识别这种依赖类型
+            </blockquote>
+        </section>
+        <section>
+            <h5>使用类名作为Injection Tokens</h5>
+            <blockquote>
+                任何值都可以作为 injection token，只要保证在 js 运行时能保证唯一性。不必是显式的令牌对象。
+            </blockquote>
+        </section>
+        <section>
+            <h5>使用类名作为Injection Tokens</h5>
+            <pre
+                data-id="code"
+              ><code data-line-numbers class="hljs" data-trim>
+@NgModule({
+    imports: [
+        ...
+    ],
+    declarations: [
+        ...
+    ],
+    providers: [
+        {
+            provide: CoursesService,
+            useFactory: coursesServiceProviderFactory,
+            deps: [HttpClient]
+        }
+    ]
+})
+export class CoursesModule { }
+            </code></pre>
+            <p class="desc">类的构造函数在运行时一定是唯一的，所以可以作为 injection token</p>
+        </section>
+        <section>
+            <h5>使用类名作为Injection Tokens</h5>
+            <pre
+                data-id="code"
+              ><code data-line-numbers class="hljs" data-trim>
+@Component({
+    selector: 'course-card',
+    templateUrl: './course-card.component.html',
+    styleUrls: ['./course-card.component.css']
+})
+export class CourseCardComponent  {
+
+    constructor( @Inject(CoursesService) private coursesService: CoursesService) {
+        ...
+    }
+    ...
+}
+            </code></pre>
+            <p class="desc">需要 CoursesService构造函数 去识别注入的是哪种依赖</p>
+        </section>
+        <section>
+            <h5>简化的 providers 配置：useClass</h5>
+            <pre
+                data-id="code"
+              ><code data-line-numbers class="hljs" data-trim>
+@NgModule({
+    imports: [
+        ...
+    ],
+    declarations: [
+        ...
+    ],
+    providers: [
+        {
+            provide: CoursesService,
+            useClass: CoursesService,
+            deps: [HttpClient]
+        }
+    ]
+})
+export class CoursesModule { }
+            </code></pre>
+            <p class="desc">除了用useFactory去实例化依赖外，也可以用 useClass</p>
+        </section>
+        <section>
+            <h5>简化的 providers 配置：useClass</h5>
+            <pre
+            data-id="code"
+          ><code data-line-numbers class="hljs" data-trim>
+@Component({
+    selector: 'course-card',
+    templateUrl: './course-card.component.html',
+    styleUrls: ['./course-card.component.css']
+})
+export class CourseCardComponent  {
+
+    constructor(private coursesService: CoursesService) {
+        ...
+    }
+    ...
+}
+        </code></pre>
+        <p class="desc">使用useClass 的好处是，根据ts类型注解的值；在运行时可以推断出 injection token，所以不需要 Inject装饰器了。</p>
+        </section>
+        <section>
+            <h5>进一步简化</h5>
+            <pre
+            data-id="code"
+          ><code data-line-numbers class="hljs" data-trim>
+@NgModule({
+    imports: [
+        ...
+    ],
+    declarations: [
+        ...
+    ],
+    providers: [
+        CoursesService
+    ]
+})
+export class CoursesModule { }
+        </code></pre>
+        <p class="desc">Angular 会判断出这个 provider 是构造函数，然后检查这个函数去创建工厂函数判断出依赖项，创建类的实例。</p>
+        <p class="desc">上面的过程是隐式发生的</p>
+        </section>
+        <section>
+            <h5>进一步简化 Injectable</h5>
+            <pre
+            data-id="code"
+          ><code data-line-numbers class="hljs" data-trim>
+@Injectable()
+export class CoursesService() {
+
+    http: HttpClient;
+
+    constructor(http: HttpClient) {
+        this.http = http;
+    }
+...
+}
+        </code></pre>
+        <p class="desc">Injectable装饰器让Angular 在运行时找到了类的依赖</p>
+        <p class="desc">useClass 不能和 interface 一起用，只能和类一起用</p>
+        <p class="desc">因为interface在运行时不存在，所以不能在运行时作为依赖的唯一标识</p>
+        </section>
+        <section>
+            <h5>理解 angular 的层级依赖注入</h5>
+            <p class="desc">在 angular 里我们可以在不同的场景定义依赖的 provider</p>
+            <ul>
+                <li>在模块级别定义</li>
+                <li>在组件级别</li>
+                <li>在指令级别</li>
+            </ul>
+        </section>
+        <section>
+            <h5>依赖询值过程</h5>
+            <img src="https://tigosoftware.com/sites/default/files/2020-08/content_dependency-injections.png" />
+        </section>
+        <section>
+            <h5>层级依赖注入的优势</h5>
+            <blockquote>
+                层级注入的优势是，我们能独立出来应用的某块部分，提供私有的依赖状态管理，而不用和其余部分混用；
+                比如父组件可以和子组件公用某个依赖，但是不会和其他组件公用这个依赖。
+        
+            </blockquote>
+        </section>
+        
+      </div>
+    </div>
+
+    <script src="../dist/reveal.js"></script>
+    <script src="../plugin/highlight/highlight.js"></script>
+    <script>
+      Reveal.initialize({
+        center: true,
+        history: true,
+		plugins: [ RevealHighlight ]
+
+        // transition: 'slide',
+        // transitionSpeed: 'slow',
+        // backgroundTransition: 'slide'
+      });
+    </script>
+  </body>
+</html>
